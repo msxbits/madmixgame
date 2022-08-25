@@ -1,0 +1,83 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Titlescreen implements GL_Sprite
+{
+	properties:
+		timer = 0;
+		blink = 0;
+		
+	virtual _operator_new(_name, _stage, _params)
+	{
+		AddFrame("data/textures/portada original msx1.png");
+		AddFrame("data/textures/portada.png");
+	}
+	
+	virtual Start()
+	{
+		SetFrame(0);
+		timer = 100.0f;
+		GetApp().PlayMusic("data/musics/MadmixGame_TEST2.ogg");
+		_change ("old");
+	}
+	
+	state "old"
+	{
+		if (timer <= 0.0f)
+		{                    
+			timer = 1.0f;
+			_change("flash");
+		}
+		else
+			timer -= GetFTime();
+	}
+	
+	state "flash"
+	{
+		if (timer <= 0.0f)
+		{
+			blink++;
+			SetFrame(blink & 1);
+			timer = blink * 2;
+			if (int(timer) >= 20)
+			{
+				SetFrame(1);
+				timer = 1000.0f;
+				_change("new");
+			} 
+		}
+		else
+			timer -= GetFTime();
+	}
+	
+	state "new"
+	{
+		if (Input_IsKeyPressed(KEY_ESCAPE) || Input_IsKeyPressed(KEY_RETURN))
+		{
+			delete GetStage();
+			GetApp().FadeOffMusic();
+			GetApp().RunMenu();                  
+		}
+		else
+			timer -= GetFTime();
+	}
+} 

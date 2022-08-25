@@ -1,0 +1,31 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Raydoor implements GL_Sprite
+{
+	virtual _operator_new(_name, _stage, _params)
+	{
+		_texPath = "data/textures/ray_door_on_%d.png"; 
+		_ani = AddAnimationWithPrefix("ani", _texPath, 1, 2, 48, 16, -1, 0.25f);
+		SetAnimation(_ani);
+	}
+}

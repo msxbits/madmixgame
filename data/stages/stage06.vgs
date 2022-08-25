@@ -1,0 +1,47 @@
+<?xml version='1.0'?>
+<Object type='GL' name='game' params=''>
+<Property name='ScriptInterface' value='' />
+<Property name='resx' value='256' />
+<Property name='resy' value='212' />
+<Property name='mainstage' value='stage1' />
+<Property name='bgcolor' value='0' />
+<Property name='globalkeys' value='' />
+<Property name='scriptFolder' value='' />
+</Object>
+<Object type='GL_Stage' name='stage1' params='[]' creator='game'>
+<Property name='ScriptInterface' value='' />
+<Property name='camerax' value='0.000000' />
+<Property name='cameray' value='0.000000' />
+<Property name='camerazoom' value='1.700000' />
+<Property name='viewportx' value='67.000000' />
+<Property name='viewporty' value='48.000000' />
+<Property name='cameraclipx' value='-50.000000' />
+<Property name='cameraclipy' value='-50.000000' />
+<Property name='cameraclipw' value='900.000000' />
+<Property name='cameracliph' value='700.000000' />
+<Property name='global' value='false' />
+<Property name='debug' value='false' />
+<Property name='visible' value='true' />
+<Property name='physicsScale' value='1.000000' />
+<Property name='physicsGravityX' value='0.000000' />
+<Property name='physicsGravityY' value='0.098100' />
+<Property name='scissorEnabled' value='false' />
+<Property name='scissorX' value='0' />
+<Property name='scissorY' value='0' />
+<Property name='scissorW' value='1000060' />
+<Property name='scissorH' value='1000060' />
+<Property name='viewscale' value='1.000000' />
+<Property name='priority' value='0' />
+</Object>
+<Object type='GL_Mapper' name='mapper1' params='[]' creator='stage1'>
+<Property name='ScriptInterface' value='' />
+<Property name='x' value='0.000000' />
+<Property name='y' value='0.000000' />
+<Property name='priority' value='0.000000' />
+<Property name='tilew' value='16' />
+<Property name='tileh' value='16' />
+<Property name='width' value='32' />
+<Property name='height' value='32' />
+<Tileset name='X:textures/paletafase6.png' texw='128.000000' texh='112.000000' tw='16.000000' th='16.000000' />
+<Layer width='32' height='32' data='789CED95EB6AC3300C85D325DD9AEC42D37669F2066B7E6D7BFF872BB306FDE054C6B93018D83F0E423ED6CDB25C1475F1B3EA6233116FA7FA5F59EDDCD7F4333DDEB75305BC041C66C9C7E2B63609785CE06B2B7E6D7784FC8EEC3AE84F227F043C23FE1D385F909B8025F8DF8ECD780C8C937518255F6637089FB22DD6F613486B2598719B5E0CA3F09917B33B43B66A1CA0D907EC10BF71DA80B5600B7E996093313072AFFE4BFAFF41D0D693B35BAEE497F5B76A34D8350D6BD880AFBDAA1CD66A078EBEA941386472976753FA8D326FD3BB3B722A47EFD5D0E3C4DF63271AD6BF9353FA3A4E0E6774F4E4D30E91DEBDD8DA841CBDB74FBDBD3BBDF147F1689CC344FBF1D8E6D5DFABF912CED4FAF7C9390EF0A5D65837D699B3B473F8B443FBE9FDAF13DE9B3F9CD5EC5B7A7909F82AF8E6F069877DA859EBEFB0D6FCD74C7B47D6A8D69AFFA3605C1FEFED3D22F75EABDA991A83C5BF7538FA6B53EFDDB5F717E84FA73D393586F86B5D2E5F169C8DCB15E2AFFF2DDA7C7BCE983163C68C193366CC98F1CFF00AAD624C25' />
+</Object>

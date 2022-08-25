@@ -1,0 +1,112 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Hinge implements GL_Sprite
+{
+	properties:
+		mapper = null;
+		player = null;
+		sndFlip = null;
+		
+	virtual _operator_new(_name, _stage, _params)
+	{
+		_texPath = "data/textures/hinge.png"; 
+		
+		_ani = AddAnimationWithSheet("right", _texPath, 0, 2, 0, 0, 32, 32, -1, -1, -2, 0.09f);
+		SetAnimationCollisionRect(_ani, 24, 0, 8, 32);
+		_ani = AddAnimationWithSheet("left", _texPath, 2, 0, 0, 0, 32, 32, -1, -1, -2, 0.09f);
+		SetAnimationCollisionRect(_ani, 0, 0, 8, 32);
+		
+		sndFlip = NewObject("snd", "gl_sound");
+		sndFlip.Load("data/sounds/hinges_swap.ogg");
+		
+		SetType(ACTOR_TYPE_HINGE);
+		SetPriority(ACTOR_PRIORITY_HINGE);
+	}
+	
+	virtual Start()
+	{
+		SetCollision(true);
+		mapper = GetStage().FindObject("mapper1");
+		player = GetStage().FindObject("player");
+
+		_layer = mapper.GetLayer(0);
+		_layer.AddSprite(this, true);
+
+		Left();
+		SetFrame(2);
+		//Right();
+		_change("out");
+	}
+	
+	function Left()
+	{
+		SetAnimation("left");
+	}
+	
+	function Right()
+	{
+		SetAnimation("right");
+	}
+	
+	function IsLeft()
+	{
+		return (GetCurAnimation() == "left");
+	}
+	
+	function Swap()
+	{
+		if (IsLeft())
+		{
+			player.useControls = false;
+			player.SetDir("right", 32+16+8);
+			sndFlip.Play();
+			Right();
+		}
+		else
+		{
+			player.useControls = false;
+			player.SetDir("left", 32+16);
+			sndFlip.Play();
+			Left();
+		}
+		SetCollision(false);
+		_change("in");
+	}
+	
+	state "out"
+	{}
+	
+	state "in"
+	{
+		if (player.useControls)
+		{
+			SetCollision(true);
+			_change("out");
+		}
+	}
+	
+	function CanKill()
+	{
+		return false;
+	}
+}

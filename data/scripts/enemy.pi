@@ -1,0 +1,221 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Enemy implements GL_Sprite
+{
+	properties:
+		K_RESPAWN_TIMER = 1000.0f;
+		mapper = null;
+		player = null;
+		spawnX = 0;
+		spawnY = 0;
+		sndDead = null;
+		sndRespawn = null;
+		tox = 0;
+		toy = 0;
+		timer = 0;
+		nodeList = [];
+		nodeIx = 0;
+		routeFailed = false;
+		SPEED = 1.0f;
+		
+	virtual Start()
+	{
+		tox = spawnX;
+		toy = spawnY;
+    	SetPos(spawnX, spawnY);
+    	SetVisible(true);
+    	SetCollision(true);
+		SetPriority(ACTOR_PRIORITY_ENEMY);
+		mapper = GetStage().FindObject("mapper1");
+		_layer = mapper.GetLayer(0);
+		_layer.AddSprite(this, true);
+    	player = GetStage().FindObject("player");
+    	nodeIx = 0;
+    	nodeList = [];
+	}
+
+    function OnPlayerAngry()
+    {
+    }
+    
+    function OnPlayerNormal()
+    {
+    }
+
+	function CanKill()
+	{
+		return true;
+	}
+
+    function Dead()
+    {
+    	if (sndDead) sndDead.Play();
+    	SetCollision(false);
+    	SetAnimation("dead");
+    	timer = 50.0f;
+    	_change("dead");
+	}
+	
+	state "dead"
+	{
+		if (timer <= 0.0f)
+		{
+			SetVisible(false);
+			timer = K_RESPAWN_TIMER;
+			_change("respawn");
+		}
+		else
+			timer -= GetFTime();
+	}
+    
+    state "respawn"
+    {
+		if (timer <= 0.0f)
+		{
+			if (sndRespawn)
+				sndRespawn.Play();
+			Start();
+		}
+		else
+			timer -= GetFTime();
+	}
+	
+	function GetHorizontalPoint(_range)
+	{
+		_j = int(GetY()/16);
+		_i = int(GetX()/16);  
+		_layer = mapper.GetLayer(0);
+		_count = 0;
+		do
+		{
+			_off = Rand(-_range, _range);
+			_nfo = _layer.Get((_i+_off) % _layer.GetWidth(), _j);
+			if (_nfo[2] == 0) break;
+			_off = 0;
+			_count++;
+		}
+		while(_count < 4);
+		return GetApp().route.FindNode(_i + _off, _j);
+	}
+	
+	function GetRandomPoint()
+	{
+		_app = GetApp();
+		_b = _app.route.GetRandomNode();
+		return _b;
+	}
+	
+	function GetPlayerPoint()
+	{
+		_b = GetApp().route.FindNode(int(player.GetX()/16), int(player.GetY()/16)); 
+		return _b;
+	}
+	
+	function CalculateRouteTo(_b)
+	{
+		_j = int(GetY()/16);
+		_i = int(GetX()/16);  
+		
+		_route = GetApp().route;
+		_a = _route.FindNode(_i, _j);
+		nodeList = _route.CreateRoute(_a, _b);
+		
+		routeFailed = (sizeof(nodeList) == 0);
+		nodeIx = 0; 
+	}
+
+    function SetDir(_dir)
+    {
+    	if (_dir != "") SetAnimation(_dir);
+    	if (_dir == "left") _dx = -1; 
+		else if (_dir == "right") _dx = 1; 
+		else _dx = 0;
+    	if (_dir == "up") _dy = -1; 
+		else if (_dir == "down") _dy = 1; 
+		else _dy = 0;
+    	tox = GetX()+_dx*16;
+    	toy = GetY()+_dy*16;
+    	
+    	_i = int(tox/16);
+    	_j = int(toy/16);
+    	_dv = GetApp().route.FindNode(_i, _j);
+    	return (_dv >= 0);
+    }
+    
+    function OnMove()
+    {
+    }
+    
+    state "move"
+    {
+		IncPosTo(SPEED, SPEED, tox, toy);
+		if (GetX() == tox && GetY() == toy)
+		{
+	    	_change("thinking");
+	    }
+	    else
+	    {
+	    	OnMove();
+		}
+    }
+    
+    state "thinking"
+    {
+		if (nodeIx < sizeof(nodeList))
+		{
+			_node = nodeList[nodeIx];
+			_app = GetApp();
+			_node = _app.route.GetNodePos(_node);
+			nodeIx++;
+			_i = _node[0];
+			_j = _node[1];
+			_ci = int(GetX() / 16);
+			_cj = int(GetY() / 16);
+			if (_i < _ci) _ok = SetDir("left");
+			else if (_i > _ci) _ok = SetDir("right");
+			else _ok = false;
+			if (!_ok)
+			{
+				if (_j < _cj) _ok = SetDir("up");
+				else if (_j > _cj) _ok = SetDir("down");
+				else _ok = false;
+			}
+			if (_ok)
+				_change("move");
+		}
+		else
+		{
+			CalculateRoute();
+		}
+    }
+    
+    function CalculateRoute()
+    {
+    }
+
+    function StopAndThink()
+    {
+    	nodeIx = 0;
+    	nodeList = [];
+    }
+}

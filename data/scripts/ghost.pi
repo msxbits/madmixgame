@@ -1,0 +1,148 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Ghost implements Enemy
+{
+	properties:
+		aniMode = "normal";
+
+	virtual _operator_new(_name, _stage, _params)
+	{
+		_texPath = "data/textures/ghost.png"; 
+		
+		AddAnimationWithSheet("normal_down", _texPath, 0, 1, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("normal_right", _texPath, 2, 3, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("normal_left", _texPath, 4, 5, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("normal_up", _texPath, 6, 7, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("normal_dead", _texPath, 16, 16, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		
+		AddAnimationWithSheet("scared_down", _texPath, 12, 13, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("scared_right", _texPath, 8, 9, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("scared_left", _texPath, 10, 11, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("scared_up", _texPath, 14, 15, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("scared_dead", _texPath, 17, 17, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		
+		_texPath = "data/textures/player_normal.png"; 
+		AddAnimationWithSheet("dead", _texPath, 15, 18, 0, 0, 16, 16, -1, -1, -2, 0.15f);
+		
+		sndDead = NewObject("snd", "gl_sound");
+		sndDead.Load("data/sounds/ghost_dead.ogg");
+		sndRespawn = NewObject("snd", "gl_sound");
+		sndRespawn.Load("data/sounds/ghost_respawn.ogg");
+		
+		SetCollisionRect(4, 4, GetWF()-8, GetHF()-8);
+		
+		SetType(ACTOR_TYPE_GHOST);
+    	SPEED = 1.0f;
+	}
+
+    virtual Start()
+    {
+    	SetCollision(true);
+    	Think();
+    }
+    
+    function SetAnimation(_ani)
+    {
+    	::SetAnimation(aniMode + "_" + _ani);
+    }
+    
+    function Think()
+    {
+    	SetAnimation("down");
+		timer = Rand(10, 20);	
+    	_change("thinking");
+    }
+    
+    function CalculateRoute()
+    {
+		if (timer >= 0.0f)
+		{
+			_b = GetHorizontalPoint(2);
+			timer -= GetFTime();
+		}
+		else if (aniMode == "scared" || routeFailed)
+		{
+			_b = GetRandomPoint();
+			routeFailed = false; 
+		}
+		else
+		{
+			_b = GetPlayerPoint();
+		}
+        CalculateRouteTo(_b);
+	}
+    
+    function Dead()
+    {
+    	sndDead.Play();
+    	SetCollision(false);
+    	SetAnimation("dead");
+    	timer = 50.0f;
+    	_change("dead");
+	}
+	
+	state "dead"
+	{
+		if (timer <= 0.0f)
+		{
+			SetAnimation("dead");
+			_change("dead2");
+		}
+		else
+			timer -= GetFTime();
+	}
+	
+	state "dead2"
+	{
+		if (GetAnimationLoops() >= 1)
+		{
+			SetVisible(false);
+			timer = 100.0f;
+			_change("respawn");
+		}
+	}
+    
+    state "respawn"
+    {
+		if (timer <= 0.0f)
+		{
+			Start();
+		}
+		else
+			timer -= GetFTime();
+	}
+    
+    function OnPlayerAngry()
+    {
+    	aniMode = "scared";
+    	SPEED = 0.5f;
+    	StopAndThink();
+    }
+    
+    function OnPlayerNormal()
+    {
+    	aniMode = "normal";
+    	SPEED = 1.0f;
+    	StopAndThink();
+    }
+}

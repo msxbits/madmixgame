@@ -1,0 +1,474 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Game implements GL_Program partial app_build_version
+{
+	defines:
+//		__DEVELOPER_MODE__ = 1; 
+		
+		MAX_PLAYER_LIVES = 3;
+		
+		CELL_TYPE_DOWN = 0;
+		CELL_TYPE_LEFT = 1;
+		CELL_TYPE_RIGHT = 2;
+		CELL_TYPE_UP = 3;
+		CELL_TYPE_ITEM_ANGRY = 4;
+		CELL_TYPE_ITEM_HIPO = 5;
+		CELL_TYPE_ITEM_CARTEPILLAR = 6;
+		CELL_TYPE_ITEM_NORMAL = 7;
+		CELL_TYPE_SHIP_L = 12;
+		CELL_TYPE_SHIP = 13;
+		CELL_TYPE_SHIP_R = 14;
+		CELL_TYPE_TANK = 15;
+		CELL_TYPE_BALL_S = 25; 
+		CELL_TYPE_BALL_E = 31; 
+		CELL_TYPE_BALLC_S = 25+8; 
+		CELL_TYPE_BALLC_E = 31+8; 
+		CELL_TYPE_FLOOR_S = 25+8*2; 
+		CELL_TYPE_FLOOR_E = 31+8*2; 
+		CELL_TYPE_HINGE = 55;
+		CELL_TYPE_LADYBUG = 40;
+		CELL_TYPE_GHOST = 48;
+		CELL_TYPE_RAYDOOR = 49;
+		CELL_TYPE_TROLL = 50;
+		
+		ACTOR_TYPE_GHOST = 1;
+		ACTOR_TYPE_LADYBUG = 2;
+		ACTOR_TYPE_TROLL = 4;
+		ACTOR_TYPE_ENEMIES = ACTOR_TYPE_GHOST | ACTOR_TYPE_LADYBUG | ACTOR_TYPE_TROLL;
+		ACTOR_TYPE_HINGE = 8;
+		ACTOR_TYPE_PLAYER = 16;
+		
+		ACTOR_PRIORITY_BG = 0;
+		ACTOR_PRIORITY_HINGE = 1;
+		ACTOR_PRIORITY_ENEMY = 2;
+		ACTOR_PRIORITY_PLAYER = 3;
+		
+		COLLISION_NONE = 0;
+		COLLISION_FOR_ALL = 1;
+		COLLISION_FOR_PLAYER = 2;
+		COLLISION_FOR_ENEMIES = 4;
+				
+	properties:
+		stageIndex = 0;
+		numBalls = 0;
+		maxBalls = 0;
+		numLives = MAX_PLAYER_LIVES;
+		hud = null;
+		music = null;
+		route = null;
+		pressP = false;
+		padPreset = "CURSORS";
+
+	function Start()
+	{
+		_wnd = GetDOS().GetWindow();
+		_wnd.HookEvent(UI_EVENT_CHAR, this, "OnChar");
+	
+		if (GetBundleDriveName() == "")	AddScriptPackage("data/scripts/", false);	
+		gl.SetResourceBaseFolder(GetBundleDriveName());
+		gl.SetOnGetResourcePath(this, "OnGetResourcePath");	
+		
+		SetBackgroundMode(false);
+		SetBackColor(RGB(0,0,0));
+		SetBgColor(RGB(0,0,0));
+		SetResolution(256, 212);
+		SetViewScale(3, true);
+		SetVSync(true);
+		Set2DFilter(false);
+		SetFrameRate(60);
+		
+		RunTitleScreen();
+		//RunEndScreen();
+		//RunMenu();
+		//RunStage(0);
+		::Start();
+	}
+
+	function OnGetResourcePath(_path)
+	{
+		_ps = Path_Split(_path);
+		if (_ps[0] == "X:") return GetBundleDriveName() + "data/" + _ps[1] + _ps[2] + _ps[3];
+		return GetBundleDriveName() + _path;
+	}
+		
+	function RunTitleScreen()
+	{
+		ClearStage();
+		_stage = NewStage("ts_stage");
+		_stage.SetMain();
+		_stage.SetActive();
+		_ts = _stage.NewObject("ts", GetBundleDriveName() + "titlescreen");
+		gl.Play();
+	}
+	
+	function RunEndScreen()
+	{
+		ClearStage();
+		_stage = NewStage("ts_stage");
+		_stage.SetMain();
+		_stage.SetActive();
+		_ts = _stage.NewObject("ts", GetBundleDriveName() + "endscreen");
+		gl.Play();
+	}
+
+	function RunMenu()
+	{
+		ClearStage();
+		_stage = NewStage("menu", GetBundleDriveName() + "menu");
+		_stage.SetMain();
+		_stage.SetActive();
+		gl.Play();
+	}
+	
+	function RunInitialStage()
+	{
+		numLives = MAX_PLAYER_LIVES;
+        RunStage(1);
+	}
+	
+	function RunStage(_ix)
+	{
+		ClearStage();
+		
+		gl.Hide();
+
+		if (typeof(_ix) == TYPE_INT)
+		{
+			stageIndex = _ix;
+			_filename = GetBundleDriveName() + String_Format("data/stages/stage%02d.vgs", _ix);
+		}
+		else
+		{
+			_filename = _ix;
+		}
+		
+		LoadVGS(_filename);
+		_stage = GetActiveStage();
+		//_stage.SetDebug(true);
+		
+		_stage.SetCameraClip(-512, -64, 512+512+512, 64+512+64);
+		_stage.SetViewport(-512, -64, 512+512+512, 64+512+64); 
+
+		_pad = _stage.NewObject("pad", "gl_pad");
+		_pad.SetPreset(padPreset);
+		
+		_player = _stage.NewObject("player", GetBundleDriveName() + "player");
+		_player.SetPos(256/2-16, 64);
+
+		//Where is the RAYDOOR. I need to place the enemies there.
+		_mapper = _stage.FindObject("mapper1");
+		_mapper.SetWrap(1, 0);
+		_mapper.bScreenCropped = false;
+
+		_rayX = 0;
+		_rayY = 0;
+		_layer = _mapper.GetLayer(0);
+		for (j=0; j<_layer.GetHeight(); j++)
+		{
+			for(i=0; i<_layer.GetWidth(); i++)
+			{
+				_nfo = _layer.Get(i, j);
+				if (_nfo[1] == CELL_TYPE_RAYDOOR)
+				{
+					_rayX = i;
+					_rayY = j+1;
+					j = _layer.GetHeight(); //termina el bucle (j)
+					break;
+				}
+			}
+		}
+
+		//Once time loaded the scene... we need to look at cells to complete the information
+		for (j=0; j<_layer.GetHeight(); j++)
+		{
+			for(i=0; i<_layer.GetWidth(); i++)
+			{
+				_nfo = _layer.Get(i, j);
+				if (_nfo[0] != 0)
+				{
+					if (_nfo[1] == CELL_TYPE_RAYDOOR)
+					{
+						_layer.Set (i-1, j, _nfo[0], CELL_TYPE_FLOOR_S, COLLISION_FOR_ALL); //0 = no collision, 1 = Collision for all, 2 = Collision only for player, 4 = Collision only for enemies
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_FLOOR_S, COLLISION_FOR_PLAYER); 
+						_layer.Set (i+1, j, _nfo[0], CELL_TYPE_FLOOR_S, COLLISION_FOR_ALL); 
+						_actor = _stage.NewObject("raydoor", GetBundleDriveName() + "raydoor");
+						_actor.SetPos(i*16-16, j*16);
+					}
+					else if (_nfo[1] == CELL_TYPE_GHOST)
+					{
+						_actor = _stage.NewObject("ghost", GetBundleDriveName() + "ghost");
+						_actor.spawnX = _rayX*16;
+						_actor.spawnY = _rayY*16;
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_FLOOR_S, 0); 
+					}
+					else if (_nfo[1] == CELL_TYPE_LADYBUG)
+					{
+						_actor = _stage.NewObject("ladybug", GetBundleDriveName() + "ladybug");
+						_actor.spawnX = _rayX*16;
+						_actor.spawnY = _rayY*16;
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_FLOOR_S, 0); 
+					}
+					else if (_nfo[1] == CELL_TYPE_TROLL)
+					{
+						_actor = _stage.NewObject("troll", GetBundleDriveName() + "troll");
+						_actor.spawnX = _rayX*16;
+						_actor.spawnY = _rayY*16;
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_FLOOR_S, 0); 
+					}
+					else if (_nfo[1] == CELL_TYPE_HINGE)
+					{
+						_actor = _stage.NewObject("hinge", GetBundleDriveName() + "hinge");
+						_actor.SetPos(i*16+8, j*16-16);
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_FLOOR_S, COLLISION_FOR_ENEMIES); 
+						_i = (i + 1) % _layer.GetWidth();
+						_nfo = _layer.Get(_i, j);
+						_layer.Set (_i, j, _nfo[0], CELL_TYPE_FLOOR_S, COLLISION_FOR_ALL); 
+					}
+					else if (_nfo[1] == CELL_TYPE_TANK)
+					{
+						_nfo2 = _layer.Get(i, j+1);
+						if (_nfo2[1] != CELL_TYPE_TANK) 
+							_layer.Set (i, j, _nfo[0], _nfo[1], COLLISION_FOR_ALL);
+						else
+							_layer.Set (i, j, _nfo[0], _nfo[1], COLLISION_FOR_ENEMIES);
+					}
+					else if (_nfo[1] == CELL_TYPE_SHIP_L || _nfo[1] == CELL_TYPE_SHIP || _nfo[1] == CELL_TYPE_SHIP_R)
+					{
+						_layer.Set (i, j, _nfo[0], _nfo[1], COLLISION_FOR_ENEMIES);
+					}
+					else if (_nfo[1] == CELL_TYPE_ITEM_NORMAL)
+					{
+						_player.spawnX = i*16;
+						_player.spawnY = j*16;
+						_player.SetPos(_player.spawnX, _player.spawnY);
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_FLOOR_S, 0); 
+					}
+					else if (_nfo[1] == CELL_TYPE_BALL_S)
+					{
+						numBalls++;
+						_layer.Set (i, j, _nfo[0], _nfo[1], 0);
+					}
+					else if (_nfo[1] == CELL_TYPE_FLOOR_S)
+					{
+						//Warning! if we modify it, we can break the HINGES collision.
+						//_layer.Set (i, j, _nfo[0], _nfo[1], 0);
+					}
+					else if (_nfo[1] >= CELL_TYPE_DOWN && _nfo[1] <= CELL_TYPE_UP)
+					{
+						numBalls++;
+						_layer.Set (i, j, _nfo[0], _nfo[1], 0);
+					}
+					else if (_nfo[1] >= CELL_TYPE_ITEM_ANGRY && _nfo[1] < CELL_TYPE_ITEM_NORMAL) //Items
+					{
+						_layer.Set (i, j, _nfo[0], _nfo[1], 0);
+					}
+					else // WALL, etc.
+					{
+						_layer.Set (i, j, _nfo[0], _nfo[1], COLLISION_FOR_ALL);
+					}
+				}
+				else
+				{
+					_layer.Set (i, j, _nfo[0], _nfo[1], COLLISION_FOR_ALL);
+				}
+			}
+		} 
+		
+		//Create the GRAPH map for routes...
+		route = NewObject("route", "gl_route");
+		route.SetMode(1);
+		route.SetW(_layer.GetWidth());
+		route.SetH(_layer.GetHeight());
+		
+		//Once time loaded the scene, we need to look at cells and create the graph.
+		for (j=0; j<_layer.GetHeight(); j++)
+		{
+			for(i=0; i<_layer.GetWidth(); i++)
+			{
+				_nfo = _layer.Get(i, j);
+				if (_nfo[0] == 0 || ((_nfo[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) != 0))
+					continue;
+				
+				//Collision around??
+				if (i == 0) _nfo1 = _layer.Get(_layer.GetWidth()-1, j);
+				else _nfo1 = _layer.Get((i-1) % _layer.GetWidth(), j);
+				_nfo2 = _layer.Get((i+1) % _layer.GetWidth(), j);
+				_nfo3 = _layer.Get(i, (j+1) % _layer.GetHeight());
+				if (j == 0) _nfo4 = _layer.Get(i, _layer.GetHeight()-1);
+				else _nfo4 = _layer.Get(i, (j-1) % _layer.GetHeight());
+				if (_nfo1[0] == 0 || _nfo2[0] == 0 || _nfo3[0] == 0 || _nfo4[0] == 0 || (
+					((_nfo1[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) != 0) && 
+					((_nfo2[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) != 0) &&
+					((_nfo3[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) != 0) &&
+					((_nfo4[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) != 0)
+					))
+					continue;
+				
+				_aix = route.AddNode(i, j);
+				
+				_i2 = (i+1) % _layer.GetWidth();
+				_nfo2 = _layer.Get(_i2, j);
+				if (_nfo2[0] && (_nfo2[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) == 0)
+				{
+					_bix = route.AddNode(_i2, j);
+					route.AddSegment(_aix, _bix);
+				}
+
+				_j = (j+1) % _layer.GetHeight();
+				_nfo2 = _layer.Get(i, _j);
+				if (_nfo2[0] && (_nfo2[2] & (COLLISION_FOR_ALL | COLLISION_FOR_ENEMIES)) == 0)
+				{
+					_bix = route.AddNode(i, _j);
+					route.AddSegment(_aix, _bix);
+				}   
+			}
+		}  
+		
+		maxBalls = numBalls;
+		
+		hud = NewStage("hud", GetBundleDriveName() + "hud");
+		
+		hud.OnUpdateLives(numLives);
+		hud.OnUpdateProgress(1.0f);
+		
+		gl.Play();
+		gl.Show();
+
+		hud.StartStage();
+	}
+	
+	function ClearStage()
+	{
+		numBalls = 0;
+		maxBalls = 0;
+
+		if (hud)
+		{
+			delete hud;
+			hud = null;
+		}
+		
+		if (GetActiveStage())
+		{
+			delete GetActiveStage();
+		}
+		
+		gl.Stop();
+	}
+	
+	function OnEnemyKilled(_enemy)
+	{
+		if (_enemy.GetType() == ACTOR_TYPE_GHOST) _score = 400;
+		else _score = 600;
+		hud.OnUpdateScore(_score);
+		_fx = GetActiveStage().NewObject("fxnum", GetBundleDriveName() + "fxnum", [_score]);
+		_fx.SetPos(_enemy.GetX(), _enemy.GetY());
+	}
+	
+	function OnPlayerKilled(_player)
+	{
+		numLives--;
+		if (numLives == 0)
+		{
+			hud.GameOver();
+		}
+		else
+		{
+			hud.RestartStage();
+		}	
+	}
+	
+	function OnPickupBall(_player)
+	{
+		numBalls--;
+		hud.OnUpdateProgress(float(numBalls)/maxBalls);
+		if (numBalls == 0)
+			hud.StageCompleted();
+	}
+	
+	function IncBall()
+	{
+		if (numBalls == maxBalls)
+			return false;
+		numBalls++;
+		hud.OnUpdateProgress(float(numBalls)/maxBalls);
+		return true;
+	}
+	
+	function NextStage()
+	{
+		if (stageIndex == 15)
+		{
+			RunEndScreen();
+		}
+		else
+		{ 
+			stageIndex++;
+			RunStage(stageIndex);
+		}
+	}
+
+	function PlayMusic(_name)
+	{
+		music = NewMusic("ost");
+		music.SetLoop(true);
+		music.Load(_name);
+		music.Play();
+		FadeOnMusic();
+	}
+	
+	function FadeOffMusic()
+	{
+		music.FadeOff();
+	}
+
+	function FadeOnMusic()
+	{
+		music.FadeOn();
+	}
+	
+	function OnChar(_sender, _event, _params)
+	{
+		if (hud)
+		{
+			if (_params[0] == 'P' || _params[0] == 'p')
+			{
+				if (!pressP)
+				{
+					pressP = true;
+					OnSystemPause();
+				}
+				else
+				{
+					pressP = false;
+					OnSystemPause();
+				}
+			}
+		}
+	}
+	
+	function SetPadPreset(_ps)
+	{
+		padPreset = _ps;
+	}
+}

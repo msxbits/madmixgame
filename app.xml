@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<icon name="app.png" />
+<description 
+bundle="com_gabe_madmixgame"
+name="Mad Mix Game"
+developer="GABE Productions"
+date="01/01/2022" 
+/>
+<application 
+name="data/scripts/game.pi" 
+/>

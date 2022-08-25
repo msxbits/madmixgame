@@ -1,0 +1,181 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class EndScreen implements GL_Sprite
+{
+	properties:
+		text = null;
+		timer = 100.0f;
+		
+	virtual _operator_new(_name, _stage, _params)
+	{
+		AddFrame("data/textures/portada.png");
+		
+		text = NewObject("text", "gl_text");
+		text.SetFontBitmapProperties(32, 2, ' ');
+		text.SetFontName("data/textures/font.png");
+		text.SetFontSize(8, 8);
+		text.SetPos(0, 100);
+		text.SetSize(GetGL().GetResX(), INT_MAX);
+		text.SetAlign(DT_CENTER);
+		text.SetClipping(false);
+		text.SetShadowEffect(2, RGB(0,0,0));
+		
+		text.SetFontColorEntry(0, RGB(255,255,255));
+		text.SetFontColorEntry(1, RGB(255,0,0));
+		text.SetFontColorEntry(2, RGB(255,255,0));
+		
+		_text = "";
+		_text += "\\0CONGRATULATIONS!!";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2LEVEL DESIGN\n";
+		_text += "\n";
+		_text += "\\1EFRAIM SANCHEZ GIL\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2GRAPHICS\n";
+		_text += "\n";
+		_text += "\\1ROBERTO ALVAREZ\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2MUSIC\n";
+		_text += "\n";
+		_text += "\\1GABRIEL CAFFARENA\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2SOUND\n";
+		_text += "\n";
+		_text += "\\1EFRAIM SANCHEZ GIL\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2PROGRAMMING\n";
+		_text += "\n";
+		_text += "\\1ALHONES\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2TESTING\n";
+		_text += "\n";
+		_text += "\\1VICTOR LLAMAZARES\n";
+		_text += "\n";
+		_text += "\\1JULIO GRACIA PARIS\n";
+		_text += "\n";
+		_text += "\\1XAVI SORINAS\n";
+		_text += "\n";
+		_text += "\\1JAVIER BELTRAN\n";
+		_text += "\n";
+		_text += "\\1SERGI GARCIA BESORA\n";
+		_text += "\n";
+		_text += "\\1JUAN MORALES\n";
+		_text += "\n";
+		_text += "\\1DANIEL CONSTANTI\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\0MAD MIX GAME TRIBUTE\n";
+		_text += "\n";
+		_text += "\\1BY GABE PRODUCTIONS\n";
+		_text += "\n";
+		_text += "\\22022\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\0LONG LIFE MSXVR!!\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\n";
+		_text += "\\2THE END\n";
+		text.SetText(_text);
+	}
+	
+	virtual Start()
+	{
+		GetApp().PlayMusic("data/musics/MadmixGame_TEST2.ogg");
+		_change ("wait");
+	}
+	
+	state "wait"
+	{
+		if (timer <= 0.0f)
+		{
+			_change("scroll");
+		}
+		else
+			timer -= GetFTime();
+	}
+	
+	state "scroll"
+	{
+		text.IncPos(0, -0.25f);
+		
+		if (text.GetY() <= -525)
+		{
+			timer = 100.0f;
+			_change("end");
+		}
+	}
+	
+	state "end"
+	{
+		if (timer <= 0.0f)
+		{
+			Close();
+		}
+		else
+			timer -= GetFTime();
+	}
+	
+	function Close()
+	{
+		delete GetStage();
+		GetApp().FadeOffMusic();
+		GetApp().RunMenu();
+		exit;                  
+	}
+	
+	virtual Move()
+	{
+		if (Input_IsKeyPressed(KEY_ESCAPE) || Input_IsKeyPressed(KEY_RETURN))
+		{
+			Close();
+		}
+	}
+} 

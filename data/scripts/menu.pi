@@ -1,0 +1,232 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Menu implements GL_Stage
+{
+	properties:
+		pad = null;
+		items = [];
+		itemSel = 0;
+		pressUp = false;
+		pressDown = false;
+		pressOk = false;
+		sndSel = null;
+		sndOk = null;
+		sndPlay = null;
+	
+	virtual _operator_new(_name, _creator, _params)
+	{
+		_text = NewObject("text1", "gl_text");
+		_text.SetFontBitmapProperties(32, 2, ' ');
+		_text.SetFontName("data/textures/font.png");
+		_text.SetFontSize(8, 8);
+		_text.SetPos(0, 20);
+		_text.SetAlign(DT_CENTER);
+		_text.SetText("MAD MIX GAME TRIBUTE");
+		
+		_text = NewObject("text2", "gl_text");
+		_text.SetFontBitmapProperties(32, 2, ' ');
+		_text.SetFontName("data/textures/font.png");
+		_text.SetFontSize(8, 8);
+		_text.SetPos(0, 30);
+		_text.SetText("BY GABE PRODUCTIONS");
+		_text.SetAlign(DT_CENTER);
+		_text.SetColor(RGB(255,0,0));
+
+		items = [];
+		items += [["KEYBOARD", 1, "OnKeyBoard", null]]; 
+		items += [["JOYSTICK USB", 0, "OnJoystickUSB", null]]; 
+		items += [["JOYSTICK MSX", 0, "OnJoystickMSX", null]]; 
+		items += [["EXIT", 0, "OnExit", null]]; 
+		items += [["", -1, "", null]]; 
+		items += [["PLAY", 2, "OnPlay", null]];
+
+		for (i=0; i<sizeof(items); i++)
+		{
+			_text = NewObject("text3", "gl_text");
+			_text.SetFontBitmapProperties(32, 2, ' ');
+			_text.SetFontName("data/textures/font.png");
+			_text.SetFontSize(8, 8);
+			_text.SetPos(0, 60 + i*15);
+			_text.SetText(items[i][0]);
+			_text.SetSize(GetGL().GetResX(), 8);
+			_text.SetAlign(DT_CENTER);
+			items[i][3] = _text;
+		}
+		UpdateItems();
+
+		mark = NewObject("mark", "gl_sprite");
+		mark.AddFrame("data/textures/play_mark.png");
+		mark.SetVisible(true);
+
+		pad = NewObject("pad", "gl_pad");
+		pad.SetPreset("CURSORS", 0);
+		pad.SetPreset("MSXPORTA", 1);
+		if (Input_GetNumJoysticks()) 
+			pad.SetPreset("JOYSTICK1", 2);
+
+		sndSel = NewObject("snd", "gl_sound");
+		sndSel.Load("data/sounds/menu_sel.ogg");
+		sndOk = NewObject("snd", "gl_sound");
+		sndOk.Load("data/sounds/menu_ok.ogg");
+		sndPlay = NewObject("snd", "gl_sound");
+		sndPlay.Load("data/sounds/menu_play.ogg");
+	}
+	
+	virtual Start()
+	{
+		_change("loop");
+	}
+	
+	function UpdateItems()
+	{
+		for (i=0; i<sizeof(items); i++)
+		{
+			_font = items[i][3];
+			if (items[i][1] == 1) _font.SetColor(RGB(255,55,0));
+			else if (items[i][1] == 0) _font.SetColor(RGB(155,0,0));
+			else _font.SetColor(RGB(255,0,0));
+			if (i == itemSel) _font.SetBgColor(RGB(255,255,255)); 
+			else _font.SetBgColor(RGB(0,0,0));
+		}
+	}
+	
+	function OnKeyboard()
+	{
+		GetApp().SetPadPreset("CURSORS");
+		items[0][1] = 1;
+		items[1][1] = 0;
+		items[2][1] = 0;
+		UpdateItems();
+	}
+	
+	function OnJoystickUSB()
+	{
+		GetApp().SetPadPreset("JOYSTICK1");
+		items[0][1] = 0;
+		items[1][1] = 1;
+		items[2][1] = 0;
+		UpdateItems();
+	}
+	
+	function OnJoystickMSX()
+	{                              	
+		GetApp().SetPadPreset("MSXPORTA");
+		items[0][1] = 0;
+		items[1][1] = 0;
+		items[2][1] = 1;
+		UpdateItems();
+	}
+	
+	function OnExit()
+	{
+		GetApp().End(0);
+		exit;
+	}
+	
+	function OnPlay()
+	{
+		sndPlay.Play();
+		_change("play");
+	}
+	
+	state "play"
+	{
+		if (!sndPlay.IsPlaying())
+		{
+			delete this; 
+			GetApp().RunInitialStage();
+		}
+	}
+	
+	state "loop"
+	{
+		if (!pressUp && (pad.IsButton(PAD_BUTTON_UP) || pad.GetOffY() < 0))
+		{
+			pressUp = true;
+			while (itemSel > 0)
+			{
+				itemSel--;
+				if (items[itemSel][1] != -1)
+					break;
+			}
+			sndSel.Play();
+			UpdateItems();
+		}
+		else if (!pressDown && (pad.IsButton(PAD_BUTTON_DOWN) || pad.GetOffY() > 0))
+		{
+			pressDown = true;
+			while (itemSel < sizeof(items)-1)
+			{
+				itemSel++;
+				if (items[itemSel][1] != -1)
+					break;
+			}
+			sndSel.Play();
+			UpdateItems();
+		}
+
+		if ((pad.IsButton(PAD_BUTTON_1)) && !pressOk)
+		{
+			pressOk = true;
+			_call(items[itemSel][2]);
+		}
+		
+		if (!pad.IsButton(PAD_BUTTON_UP) && pad.GetOffY() == 0) pressUp = false;
+		if (!pad.IsButton(PAD_BUTTON_DOWN) && pad.GetOffY() == 0) pressDown = false;
+		if (!pad.IsButton(PAD_BUTTON_1)) pressOk = false;
+		
+
+#if	__DEVELOPER_MODE__
+		if (Input_IsKeyPressed(KEY_L))
+		{
+			GetEngine().OpenFileDialog("Open VGS", "", "", "VGS Files|*.vgs", SFD_DEFAULT | SFD_FILEMUSTEXIST, this, "OnLoadVGS", null);
+		}
+		if (Input_IsKeyPressed(KEY_1)) { delete this; GetApp().RunStage(1); }
+		if (Input_IsKeyPressed(KEY_2)) { delete this; GetApp().RunStage(2); }
+		if (Input_IsKeyPressed(KEY_3)) { delete this; GetApp().RunStage(3); }
+		if (Input_IsKeyPressed(KEY_4)) { delete this; GetApp().RunStage(4); }
+		if (Input_IsKeyPressed(KEY_5)) { delete this; GetApp().RunStage(5); }
+		if (Input_IsKeyPressed(KEY_6)) { delete this; GetApp().RunStage(6); }
+		if (Input_IsKeyPressed(KEY_7)) { delete this; GetApp().RunStage(7); }
+		if (Input_IsKeyPressed(KEY_8)) { delete this; GetApp().RunStage(8); }
+		if (Input_IsKeyPressed(KEY_9)) { delete this; GetApp().RunStage(9); }
+		if (Input_IsKeyPressed(KEY_0)) { delete this; GetApp().RunStage(10); }
+		if (Input_IsKeyPressed(KEY_Q)) { delete this; GetApp().RunStage(11); }
+		if (Input_IsKeyPressed(KEY_W)) { delete this; GetApp().RunStage(12); }
+		if (Input_IsKeyPressed(KEY_E)) { delete this; GetApp().RunStage(13); }
+		if (Input_IsKeyPressed(KEY_R)) { delete this; GetApp().RunStage(14); }
+		if (Input_IsKeyPressed(KEY_T)) { delete this; GetApp().RunStage(15); }
+		if (Input_IsKeyPressed(KEY_P)) { delete this; GetApp().RunEndScreen(); }
+#endif
+	}
+
+#if	__DEVELOPER_MODE__
+
+	function OnLoadVGS(_fd, _files, _params)
+	{
+		delete this;
+		GetApp().RunStage(_files[0]);                  
+	}
+
+#endif
+}

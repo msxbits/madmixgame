@@ -1,0 +1,94 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class Player_Shot implements GL_Sprite
+{
+	properties:
+		dx = 0;
+		dy = 0;
+		life = 0;
+		
+	virtual _operator_new(_name, _stage, _params)
+	{
+		_texPath = "data/textures/player_shot.png"; 
+		_ix = AddFrame(_texPath, 8, 8);
+	}
+	
+	virtual Start()
+	{
+		SetVisible(false);
+		SetColliderMode(true, ACTOR_TYPE_ENEMIES);
+		SetUserSpriteCollision(this, "OnSpriteCollision");
+		_change("loop");
+	}
+	
+	function Restart()
+	{
+		mapper = GetStage().FindObject("mapper1");
+		_layer = mapper.GetLayer(0);
+		if (dy)
+		{
+			_layer.AddSprite(this, true);
+			life = 50.0f;
+		}
+		else
+		{
+			_layer.RemoveSprite(this);
+		}
+	
+		SetVisible(true);
+		SetStop(false);
+	}
+	
+	state "loop"
+	{
+		IncPos(dx, dy);
+		
+		if (dy)
+		{
+			//In the vertical case, we have the challenge of the HSCROLL Looping. We need to simulate the clipping in other way.
+			if (life <= 0)
+			{
+				SetVisible(false);
+				SetStop(true);
+			} 
+			else
+				life -= GetFTime();
+		}
+		else
+		{
+			if (IsClipped())
+			{
+				SetVisible(false);
+				SetStop(true);
+			} 
+		}
+	}
+
+	function OnSpriteCollision(_spr1, _spr2)
+	{
+		SetVisible(false);
+		SetStop(true);
+		_spr2.Dead();
+		GetApp().OnEnemyKilled(_spr2);
+	}
+}

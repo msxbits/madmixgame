@@ -1,0 +1,277 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class HUD implements GL_Stage
+{
+	properties:
+		mark = null;
+		font = null;
+		font2 = null;
+		score = 0;
+		lifeIcon = [];
+		fade = null;
+		text = null;
+		wait = 0;
+		waitTick = 0;
+		waitAction = "";
+		waitParams = [];
+		pstatus = null;
+		pstatus2 = null;
+		
+	virtual _operator_new(_name, _creator, _params)
+	{
+		SetGlobal(true);
+		SetPriority(100);
+
+		mark = NewObject("mark", "gl_sprite");
+		mark.AddFrame("data/textures/play_mark.png");
+		mark.SetVisible(false);
+		mark.SetPriority(2);
+		
+		fade = NewObject("fade", "gl_sprite");
+		fade.AddEmptyFrame(GetGL().GetResX(), GetGL().GetResY());
+		fade.SetColor(ARGB(0,0,0,0));
+		fade.SetPriority(1);
+
+		for (i=0; i<MAX_PLAYER_LIVES; i++)
+		{		
+			_life = NewObject("lifeicon", "gl_sprite");
+			_life.AddFrame("data/textures/icon_life.png");
+			_life.SetPos(100+i*20, 176); 
+			lifeIcon += [_life];
+			_life.SetVisible(false);
+			_life.SetPriority(3);
+		}
+		
+		font = NewObject("font1", "gl_text");
+		font.SetFontBitmapProperties(10, 1, '0');
+		font.SetFontName("data/textures/numbers.png");
+		font.SetPos(176, 176);
+		font.SetText("00000");
+		font.SetVisible(false);
+		font.SetPriority(3);
+		score = 0;
+
+		text = NewObject("font2", "gl_text");
+		text.SetFontBitmapProperties(32, 2, ' ');
+		text.SetFontName("data/textures/font.png");
+		text.SetFontSize(8, 8);
+		text.SetSize(GetApp().GetResX(), GetApp().GetResY()-32);
+		text.SetAlign(DT_CENTER|DT_VCENTER);
+		text.SetPos(0, 0);
+		text.SetColor(RGB(255,0,0));
+		text.SetVisible(false);
+		text.SetPriority(3);
+		
+		_margin = 18;
+		pbar = NewObject("pbar", "gl_sprite");
+		pbar.AddEmptyFrame(GetApp().GetResX()-_margin*2, 10);
+		pbar.SetColor(RGB(200,0,0));
+		pbar.SetPos(_margin, GetApp().GetResY()-10-8);
+		pbar.SetPriority(4);
+		pstatus2 = NewObject("pbar", "gl_sprite");
+		pstatus2.AddEmptyFrame(GetApp().GetResX()-4-_margin*2, 10-4);
+		pstatus2.SetColor(RGB(255,0,0));
+		pstatus2.SetPos(pbar.GetX()+2, pbar.GetY()+2);
+		pstatus2.SetSize(GetApp().GetResX()-4-_margin*2, 10-4);
+		pstatus2.SetPriority(5);
+		pstatus = NewObject("pbar", "gl_sprite");
+		pstatus.AddEmptyFrame(GetApp().GetResX()-4-_margin*2, 10-4);
+		pstatus.SetColor(RGB(255,255,255));
+		pstatus.SetPos(pbar.GetX()+2, pbar.GetY()+2);
+		pstatus.SetSize(GetApp().GetResX()-4-_margin*4, 10-4);
+		pstatus.SetPriority(6);
+	}
+	
+	virtual Start()
+	{
+	}
+	
+	function ShowScore(_v)
+	{
+		if (_v == false)
+		{
+			for (i=0; i<sizeof(lifeIcon); i++)
+				lifeIcon[i].SetVisible(_v);
+		}
+		else
+		{
+			OnUpdateLives(GetApp().numLives);
+		}
+		font.SetVisible(_v);
+	}
+	
+	function OnUpdateScore(_score)
+	{
+		score += _score;
+		font.SetText(String_Format("%05d", score));
+	}
+	
+	function OnUpdateProgress(_f)
+	{
+		_w = _f * pstatus2.GetWidth();
+		if (_f > 0.0f && _w == 0.0f) _w = 2.0f;
+		pstatus.SetWidth(_w, 2);
+	}
+	
+	function OnUpdateLives(_lives)
+	{
+		for (i=0; i<sizeof(lifeIcon); i++)
+		{
+			if (i >= _lives)
+				lifeIcon[i].SetVisible(false);
+			else
+				lifeIcon[i].SetVisible(true);
+		}
+	}
+	
+	function FadeOn(_ms = 0, _wait = "")
+	{
+		fade.SetAlpha(0);
+		Wait(_ms, _wait);
+		_change("fadeOn");
+	}
+	
+	function FadeOff(_ms = 0, _wait = "")
+	{
+		fade.SetAlpha(255);
+		Wait(_ms, _wait);
+		_change("fadeOff");
+	}
+	
+	state "fadeOn"
+	{
+		fade.IncAlpha(8);
+		if (fade.GetAlpha() == 255)
+		{
+			if (wait)
+				Wait(wait, waitAction, waitParams);
+			else
+				_change("loop");
+		}
+	}
+	
+	state "fadeOff"
+	{
+		fade.IncAlpha(-8);
+		if (fade.GetAlpha() == 0)
+		{
+			if (wait)
+				Wait(wait, waitAction, waitParams);
+			else
+				_change("loop");
+		}
+	}
+	
+	function ReStartStage()
+	{
+		ShowScore(false);
+		GetApp().GetActiveStage().Stop();
+		FadeOn(100, "StartStage");
+	}
+	
+	function StageCompleted()
+	{
+		ShowScore(false);
+		GetApp().GetActiveStage().Stop();
+		FadeOn(100, "StageCompletedMode");
+	}
+
+	function StageCompletedMode()
+	{
+		text.SetVisible(true);
+		text.SetText("GOT IT!");
+		mark.SetVisible(true);
+		Wait(2000, "GotoNextStage");		
+	}
+
+	function GameOver()
+	{
+		ShowScore(false);
+		GetApp().GetActiveStage().Stop();
+		FadeOn(100, "GameOverMode");
+	}
+
+	function GameOverMode()
+	{
+		text.SetVisible(true);
+		text.SetText("GAME OVER");
+		mark.SetVisible(true);
+		Wait(2000, "GotoMenu");		
+	}
+	
+	function GotoMenu()
+	{
+		GetApp().RunMenu();
+	}
+
+	function GotoNextStage()
+	{
+		GetApp().NextStage();
+	}
+
+	function StartStage()
+	{
+		GetApp().GetActiveStage().Stop();
+		fade.SetAlpha(255);
+		text.SetVisible(true);
+		text.SetText("STAGE " + string(GetApp().stageIndex));
+		mark.SetVisible(true);
+		Wait(2000, "ReadyToPlay");		
+	}
+	
+	function ReadyToPlay()
+	{
+		text.SetVisible(false);
+		ShowScore(true);
+		FadeOff();
+		GetApp().GetActiveStage().Start();
+		GetApp().PlayMusic("data/musics/MadmixGameMIX_PSG.ogg");
+	}
+	
+	function Wait(_ms, _action, _params = [])
+	{
+		wait = _ms;
+		waitTick = GetTime();
+		waitAction = _action;
+		waitParams = _params;
+		_change("wait");
+	}
+	
+	state "wait"
+	{
+		if ((GetTime() - waitTick) >= wait)
+		{
+			wait = 0;
+			_call(waitAction, waitParams);
+		}
+	}
+	
+	state "loop"
+	{
+	}
+	
+	virtual Move()
+	{
+	}
+	
+}

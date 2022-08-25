@@ -1,0 +1,117 @@
+//-----------------------------------------------------------------------------
+// MAD MIX GAME Tribute Scripts
+//
+// This VR-Script is part of the bundle: com_gabe_madmixgame.app
+// It is needed to execute in a MSXVR computer (https://msxvr.com)
+// VR-Script Author: Alberto De Hoyo Nebot
+// Development Team: Gabe Productions 
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details:
+// http://www.gnu.org/licenses/
+//-----------------------------------------------------------------------------
+
+namespace com_gabe_madmixgame;
+
+class LadyBug implements Enemy
+{
+	properties:
+		sndBall = null;
+	
+	virtual _operator_new(_name, _stage, _params)
+	{
+		_texPath = "data/textures/ladybug.png"; 
+		
+		AddAnimationWithSheet("up", _texPath, 3, 3, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("down", _texPath, 2, 2, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("left", _texPath, 1, 1, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		AddAnimationWithSheet("right", _texPath, 0, 0, 0, 0, 16, 16, -1, -1, -1, 0.25f);
+		
+		_texPath = "data/textures/player_normal.png"; 
+		AddAnimationWithSheet("dead", _texPath, 15, 18, 0, 0, 16, 16, -1, -1, -2, 0.15f);
+		
+		SetType(ACTOR_TYPE_LADYBUG);
+		
+		SetCollisionRect(4, 4, GetWF()-8, GetHF()-8);
+		
+		sndDead = NewObject("snd", "gl_sound");
+		sndDead.Load("data/sounds/ladybug_dead.ogg");
+		sndBall = NewObject("snd", "gl_sound");
+		sndBall.Load("data/sounds/ladybug_ball.ogg");
+    	SPEED = 0.7f;
+	}
+
+    virtual Start()
+    {
+    	SetCollision(true);
+    	Think();
+    }
+    
+	function CanKill()
+	{
+		return false;
+	}
+
+    function Think()
+    {
+    	SetAnimation("down");
+		timer = Rand(10, 20);	
+    	_change("thinking");
+    }
+    
+    function OnMove()
+    {
+		if (PointDistance2D(spawnX, spawnY, GetX(), GetY()) >= 5*16 && !IsClipped())
+		{
+			if (Rand(0,100) > 50 && Rand(0, 100) > 99)
+			{
+				_layer = mapper.GetLayer(0);
+				i = int((GetX()+8)/16);
+				j = int((GetY()+8)/16);
+				_nfo = _layer.Get(i, j);
+				if (_nfo[1] >= CELL_TYPE_FLOOR_S && _nfo[1] <= CELL_TYPE_FLOOR_E)
+				{
+					if (GetApp().IncBall())
+					{
+						_bix = _nfo[1] - CELL_TYPE_FLOOR_S;
+						_layer.Set (i, j, _nfo[0], CELL_TYPE_BALL_S + _bix, 0);
+						sndBall.Play();
+					}
+				}
+			}
+		}
+    }
+    
+    function CalculateRoute()
+    {
+		if (timer >= 0.0f)
+		{
+			_b = GetHorizontalPoint(2);
+			timer -= GetFTime();
+		}
+		else
+		{
+			_b = GetRandomPoint();
+		}
+        CalculateRouteTo(_b);
+    }
+    
+    function OnPlayerAngry()
+    {
+    	SPEED = 0.7f;
+    	StopAndThink();
+    }
+    
+    function OnPlayerNormal()
+    {
+    	SPEED = 1.0f;
+    	StopAndThink();
+    }
+}
